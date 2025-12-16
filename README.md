@@ -7,13 +7,11 @@ Quick Start
 -----------
 
 1. Install `uv` (https://docs.astral.sh/uv/) or ensure you have Python 3.11+.
-2. From the project root create the virtual environment and install deps:
+2. From the project root, set up dependencies:
 
 ```bash
 cd /path/to/xdfgui
-uv venv --python 3.11
-source .venv/bin/activate
-uv pip sync requirements.txt
+uv sync --extra runtime
 ```
 
 3. Launch the GUI:
@@ -22,11 +20,13 @@ uv pip sync requirements.txt
 uv run xdfgui
 ```
 
-Or run directly:
+**On macOS:** Create a clickable launcher for Finder:
 
 ```bash
-uv run python gui.py
+bash install_launcher.sh
 ```
+
+Then open xdfgui from Spotlight (Cmd+Space, type "xdfgui") or find it in ~/Applications/xdfgui.app
 
 What this does
 --------------
