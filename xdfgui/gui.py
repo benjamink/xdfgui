@@ -254,15 +254,58 @@ class App:
         if not self.image_path:
             messagebox.showwarning("No image", "Open or create an image first")
             return
-        ami = simpledialog.askstring("Amiga path", "Path inside image to extract (e.g. c/myfile):")
-        if not ami:
+        
+        # Get selected items from tree
+        selected = self.tree.selection()
+        if not selected:
+            messagebox.showwarning("No selection", "Select one or more files to extract")
             return
+        
+        # Extract file names from selected items
+        ami_paths = []
+        for item in selected:
+            vals = self.tree.item(item, "values")
+            if vals:
+                ami_paths.append(vals[0])
+        
+        if not ami_paths:
+            return
+        
+        # Remove redundant paths: if a parent directory is selected, don't extract its children
+        # Sort by path depth so we can filter efficiently
+        ami_paths_sorted = sorted(ami_paths, key=lambda x: x.count('/'))
+        filtered_paths = []
+        for path in ami_paths_sorted:
+            # Check if any already-selected path is a parent of this one
+            is_child = False
+            for parent in filtered_paths:
+                # Only consider it a child if it's strictly under the parent directory
+                if path != parent and (path.startswith(parent + '/') or path.startswith(parent + '\\')):
+                    is_child = True
+                    break
+            if not is_child:
+                filtered_paths.append(path)
+        
         dst = filedialog.askdirectory(title="Select destination directory")
         if not dst:
             return
 
         def work():
-            self.xd.read(self.image_path, ami, dst)
+            for ami in filtered_paths:
+                # Extract to destination preserving the full Amiga path structure
+                # For example: C/foo/bar.dat extracts to /dst/C/foo/bar.dat
+                
+                # Get the directory path from the Amiga path
+                ami_dir = str(Path(ami).parent)
+                if ami_dir and ami_dir != ".":
+                    # Create the directory structure in destination
+                    target_dir = os.path.join(dst, ami_dir)
+                    os.makedirs(target_dir, exist_ok=True)
+                    # Extract to the parent directory so full path is preserved
+                    self.xd.read(self.image_path, ami, target_dir)
+                else:
+                    # Top-level file, extract directly to destination
+                    self.xd.read(self.image_path, ami, dst)
 
         self.run_task(work)
 
