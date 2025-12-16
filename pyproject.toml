@@ -1,0 +1,20 @@
+[project]
+name = "xdfgui"
+version = "0.1.0"
+description = "Simple GUI wrapper for xdftool (amitools)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "amitools",
+  "lhafile",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+xdfgui = "xdfgui.cli:main"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
