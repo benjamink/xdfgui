@@ -74,11 +74,50 @@ Development & Tests
 - Run unit tests:
 
 ```bash
-source .venv/bin/activate
-.venv/bin/python -m pytest -q
+uv run pytest
 ```
 
 - Tests cover the LHA split/join utilities and the `xdftool list` output parser.
+
+Running on macOS
+-----------------
+
+The application includes native macOS integration:
+- **Menu bar** with File, Edit, and Tools menus
+- **Keyboard shortcuts**: ⌘O (Open), ⌘N (New), ⌘F (Format), ⌘W (Close), ⌘Q (Quit), ⌘A (Add), ⌘E (Extract), ⌘D (Delete), ⌘R (Rename), ⌘L (Refresh)
+
+To run:
+
+```bash
+uv sync --extra runtime
+uv run xdfgui
+```
+
+The app will launch with proper macOS menu integration.
+
+Building macOS Application (Optional)
+--------------------------------------
+
+To create a standalone `.app` bundle, you'll need Xcode Command Line Tools:
+
+```bash
+xcode-select --install
+```
+
+Then install PyInstaller and build:
+
+```bash
+uv sync --extra build --extra runtime
+uv run pyinstaller xdfgui.spec
+```
+
+The application will be created in `dist/xdfgui.app`. You can then run:
+
+```bash
+open dist/xdfgui.app
+```
+
+Or drag `xdfgui.app` to your Applications folder.
 
 Troubleshooting
 ---------------

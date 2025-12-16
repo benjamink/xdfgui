@@ -5,6 +5,7 @@ from xdfgui.lha_split import split_file, DEFAULT_ADF_CAPACITY
 from pathlib import Path
 import os
 import threading
+import sys
 
 
 class App:
@@ -13,6 +14,9 @@ class App:
         self.root.title("xdfgui")
         self.xd = XdfTool()
         self.image_path = None
+
+        # Create macOS menu bar
+        self._create_menubar()
 
         frame = tk.Frame(root)
         frame.pack(fill=tk.BOTH, expand=True)
@@ -64,6 +68,65 @@ class App:
         self.status_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.progress = ttk.Progressbar(status_frame, mode="indeterminate")
         self.progress.pack(side=tk.RIGHT)
+
+    def _create_menubar(self):
+        """Create macOS-style menu bar with standard keyboard shortcuts."""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+
+        # File menu
+        file_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="File", menu=file_menu)
+        file_menu.add_command(label="Open Image...", command=self.open_image, accelerator="Cmd+O")
+        file_menu.add_command(label="Create Blank ADF...", command=self.create_adf, accelerator="Cmd+N")
+        file_menu.add_separator()
+        file_menu.add_command(label="Format ADF...", command=self.format_adf, accelerator="Cmd+F")
+        file_menu.add_separator()
+        file_menu.add_command(label="Close", command=self._close_image, accelerator="Cmd+W")
+        
+        # Only add Quit on non-macOS or handle it specially on macOS
+        if sys.platform != 'darwin':
+            file_menu.add_separator()
+            file_menu.add_command(label="Quit", command=self.root.quit, accelerator="Cmd+Q")
+
+        # Edit menu
+        edit_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Edit", menu=edit_menu)
+        edit_menu.add_command(label="Add File...", command=self.add_file, accelerator="Cmd+A")
+        edit_menu.add_command(label="Extract File...", command=self.extract_file, accelerator="Cmd+E")
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Delete", command=self.delete_file, accelerator="Cmd+D")
+        edit_menu.add_command(label="Rename/Move...", command=self.rename_file, accelerator="Cmd+R")
+        edit_menu.add_separator()
+        edit_menu.add_command(label="Refresh", command=self.refresh, accelerator="Cmd+L")
+
+        # Tools menu
+        tools_menu = tk.Menu(menubar, tearoff=0)
+        menubar.add_cascade(label="Tools", menu=tools_menu)
+        tools_menu.add_command(label="Split LHA to ADFs...", command=self.split_lha_to_adfs)
+
+        # Bind keyboard shortcuts
+        self.root.bind('<Command-o>', lambda e: self.open_image())
+        self.root.bind('<Command-n>', lambda e: self.create_adf())
+        self.root.bind('<Command-f>', lambda e: self.format_adf())
+        self.root.bind('<Command-w>', lambda e: self._close_image())
+        self.root.bind('<Command-a>', lambda e: self.add_file())
+        self.root.bind('<Command-e>', lambda e: self.extract_file())
+        self.root.bind('<Command-d>', lambda e: self.delete_file())
+        self.root.bind('<Command-r>', lambda e: self.rename_file())
+        self.root.bind('<Command-l>', lambda e: self.refresh())
+        
+        # macOS Command+Q handling
+        if sys.platform == 'darwin':
+            self.root.createcommand('::tk::mac::Quit', self.root.quit)
+
+    def _close_image(self):
+        """Close the currently open image."""
+        self.image_path = None
+        self.root.title("xdfgui")
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        self.set_status("Image closed")
 
     def set_status(self, text: str):
         self.status_var.set(text)

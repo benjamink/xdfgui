@@ -13,6 +13,7 @@ This document explains repository conventions and guidance for an assistant work
 
 - Environment and tooling:
   - The project uses `uv` for environment management; a `.python-version` pins Python 3.11.
+  - Dependencies are managed exclusively by `uv` and declared in `pyproject.toml`.
   - Use the virtual environment at `.venv` created by `uv venv` for running and testing.
   - Tests run with `pytest` (invoke via `.venv/bin/python -m pytest` or `uv run pytest`).
 

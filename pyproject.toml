@@ -4,13 +4,11 @@ version = "0.1.0"
 description = "Simple GUI wrapper for xdftool (amitools)"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-  "amitools",
-  "lhafile",
-]
 
 [project.optional-dependencies]
 test = ["pytest"]
+build = ["pyinstaller"]
+runtime = ["amitools", "lhafile", "pyobjc-framework-Cocoa; sys_platform == 'darwin'", "setproctitle; sys_platform == 'darwin'"]
 
 [project.scripts]
 xdfgui = "xdfgui.cli:main"
