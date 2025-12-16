@@ -2,7 +2,7 @@ from pathlib import Path
 import math
 
 
-DEFAULT_ADF_CAPACITY = 901120  # bytes (typical ADF size)
+DEFAULT_ADF_CAPACITY = 819200  # bytes (800 KB)
 
 
 def split_file(path: str, part_size: int = None, out_dir: str = None):

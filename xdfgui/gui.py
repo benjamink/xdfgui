@@ -310,18 +310,32 @@ class App:
         if not base:
             base = Path(lha).stem
 
-        part_size = simpledialog.askinteger("Part size bytes", "Max bytes per part (approx):", initialvalue=DEFAULT_ADF_CAPACITY - 20000)
+        part_size = simpledialog.askinteger("Part size bytes", "Max bytes per part (approx):", initialvalue=DEFAULT_ADF_CAPACITY)
+
+        # Ask if user wants to use currently opened image or create new ones
+        use_current = False
+        if self.image_path:
+            use_current = messagebox.askyesno("Use current image?", f"Use currently opened image for first part?\n\n{self.image_path}\n\nClick 'No' to create new disk images for all parts.")
 
         def work():
             parts = split_file(lha, part_size=part_size, out_dir=out_dir)
             created = []
-            for idx, part in enumerate(parts, start=1):
+            start_idx = 1
+            if use_current:
+                # Write first part to current image
+                self.xd.write(self.image_path, parts[0])
+                self.refresh()
+                start_idx = 2
+            for idx, part in enumerate(parts[start_idx-1:], start=start_idx):
                 adf_name = os.path.join(out_dir, f"{base}-{idx:02d}.adf")
                 self.xd.create(adf_name)
                 self.xd.format(adf_name, f"{base}-{idx:02d}")
                 self.xd.write(adf_name, part)
                 created.append(adf_name)
-            messagebox.showinfo("Done", f"Created {len(created)} ADFs in {out_dir}")
+            if use_current:
+                messagebox.showinfo("Done", f"Wrote first part to {self.image_path}\nCreated {len(created)} additional ADFs in {out_dir}")
+            else:
+                messagebox.showinfo("Done", f"Created {len(created)} ADFs in {out_dir}")
 
         self.run_task(work)
 
