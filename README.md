@@ -34,3 +34,26 @@ uv run python gui.py
 Notes:
 - This tool shells out to the `xdftool` command (installed as part of `amitools`).
 - Renaming/moving a file is implemented by copying to host, writing under new name and deleting the old entry.
+
+Example Workflows
+-----------------
+
+1) Create and format a blank ADF via CLI
+
+```bash
+uv run python -c "from xdfgui.xdftool_wrapper import XdfTool; xd = XdfTool(); xd.create('blank.adf'); xd.format('blank.adf', 'MyDisk')"
+```
+
+2) Inspect contents of an ADF via CLI
+
+```bash
+uv run xdftool mydisk.adf list
+```
+
+3) Using the GUI
+
+- Run `uv run xdfgui` or `uv run python gui.py` to start the app.
+- Click `Open Image` to select an existing `.adf`.
+- Use `Add File` to copy a host file into the image, `Extract File` to pull files out.
+- Use `Split LHA -> ADFs` to split a large `.lha` archive into parts and create one ADF per part.
+

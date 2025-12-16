@@ -25,8 +25,28 @@ class App:
         tk.Button(top, text="Format ADF", command=self.format_adf).pack(side=tk.LEFT)
         tk.Button(top, text="Split LHA -> ADFs", command=self.split_lha_to_adfs).pack(side=tk.LEFT)
 
-        self.listbox = tk.Listbox(frame, width=80, height=20)
-        self.listbox.pack(fill=tk.BOTH, expand=True)
+        # Use a Treeview for structured file listing
+        cols = ("name", "size", "flags", "date", "comment")
+        self.tree = ttk.Treeview(frame, columns=cols, show="headings")
+        self.tree.heading("name", text="Name")
+        self.tree.heading("size", text="Size")
+        self.tree.heading("flags", text="Flags")
+        self.tree.heading("date", text="Date")
+        self.tree.heading("comment", text="Comment")
+        self.tree.column("name", width=300)
+        self.tree.column("size", width=80, anchor="e")
+        self.tree.column("flags", width=80)
+        self.tree.column("date", width=160)
+        self.tree.column("comment", width=240)
+        self.tree.pack(fill=tk.BOTH, expand=True)
+        # Context menu for tree rows
+        self.tree_menu = tk.Menu(self.root, tearoff=0)
+        self.tree_menu.add_command(label="Extract", command=self._menu_extract)
+        self.tree_menu.add_command(label="Delete", command=self._menu_delete)
+        self.tree_menu.add_command(label="Rename/Move", command=self._menu_rename)
+        # Bind right-click (Button-3). On mac, Button-2 may be used too.
+        self.tree.bind("<Button-3>", self._on_tree_right_click)
+        self.tree.bind("<Button-2>", self._on_tree_right_click)
 
         bottom = tk.Frame(frame)
         bottom.pack(fill=tk.X)
@@ -95,17 +115,54 @@ class App:
 
     def refresh(self):
         def work():
-            self.listbox.delete(0, tk.END)
+            for i in self.tree.get_children():
+                self.tree.delete(i)
             if not self.image_path:
                 return
             code, out, err = self.xd.list(self.image_path)
             if out:
-                for line in out.splitlines():
-                    self.listbox.insert(tk.END, line)
+                entries = self.xd.parse_list_output(out)
+                for ent in entries:
+                    size_raw = ent.get("size") or ""
+                    size_display = self._format_size(size_raw)
+                    self.tree.insert("", tk.END, values=(ent.get("name"), size_display, ent.get("flags"), ent.get("date"), ent.get("comment")))
             else:
-                self.listbox.insert(tk.END, "(no output)")
+                self.tree.insert("", tk.END, values=("(no output)", "", "", "", ""))
 
         self.run_task(work)
+
+    def _format_size(self, raw: str) -> str:
+        """Try to normalize size values into human-readable bytes.
+
+        Leaves the original string if it cannot be parsed as a number.
+        """
+        if not raw:
+            return ""
+        # remove commas
+        try:
+            s = raw.replace(",", "")
+            # handle suffixes like K, M, G (possibly with i)
+            suffix = s[-1].upper()
+            if suffix in ("K", "M", "G", "T") and not s[:-1].strip().isdigit():
+                # cases like '1,024K' -> keep as-is
+                return raw
+            if suffix in ("K", "M", "G", "T") and s[:-1].replace(".", "").isdigit():
+                # convert approximate
+                num = float(s[:-1])
+                mul = {"K": 1024, "M": 1024 ** 2, "G": 1024 ** 3, "T": 1024 ** 4}[suffix]
+                return f"{int(num * mul)}"
+            # otherwise parse integer
+            if s.isdigit():
+                n = int(s)
+                # human-friendly
+                for unit in ["B", "KiB", "MiB", "GiB"]:
+                    if n < 1024:
+                        return f"{n}{unit}"
+                    n = n / 1024
+                return f"{n:.1f}TiB"
+        except Exception:
+            pass
+        return raw
 
     def add_file(self):
         if not self.image_path:
@@ -193,6 +250,71 @@ class App:
                 self.xd.write(adf_name, part)
                 created.append(adf_name)
             messagebox.showinfo("Done", f"Created {len(created)} ADFs in {out_dir}")
+
+        self.run_task(work)
+
+    # --- Context menu helpers ---
+    def _selected_ami_from_event(self, event):
+        row = self.tree.identify_row(event.y)
+        if not row:
+            return None
+        vals = self.tree.item(row, "values")
+        if not vals:
+            return None
+        name = vals[0]
+        return name
+
+    def _on_tree_right_click(self, event):
+        ami = self._selected_ami_from_event(event)
+        if not ami:
+            return
+        # select the row under cursor
+        row = self.tree.identify_row(event.y)
+        self.tree.selection_set(row)
+        # store last selected ami for menu callbacks
+        self._menu_selected_ami = ami
+        try:
+            self.tree_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.tree_menu.grab_release()
+
+    def _menu_extract(self):
+        ami = getattr(self, "_menu_selected_ami", None)
+        if not ami:
+            return
+        dst = filedialog.askdirectory(title=f"Extract {ami} to directory")
+        if not dst:
+            return
+
+        def work():
+            self.xd.read(self.image_path, ami, dst)
+
+        self.run_task(work)
+
+    def _menu_delete(self):
+        ami = getattr(self, "_menu_selected_ami", None)
+        if not ami:
+            return
+        if not messagebox.askyesno("Confirm", f"Delete {ami} from image?"):
+            return
+
+        def work():
+            self.xd.delete(self.image_path, ami)
+            self.refresh()
+
+        self.run_task(work)
+
+    def _menu_rename(self):
+        ami = getattr(self, "_menu_selected_ami", None)
+        if not ami:
+            return
+        dst = simpledialog.askstring("Destination path", "New Amiga path (e.g. c/newfile):", initialvalue=ami)
+        if not dst:
+            return
+
+        def work():
+            self.xd.rename(self.image_path, ami, dst)
+            self.refresh()
 
         self.run_task(work)
 

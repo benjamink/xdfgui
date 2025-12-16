@@ -34,6 +34,61 @@ class XdfTool:
             args.append("info")
         return self._run(image_path, args, capture=True)
 
+    def parse_list_output(self, raw_output: str):
+        """Parse the textual output of `xdftool ... list` into structured entries.
+
+        The parser is permissive: it splits each non-empty line on runs of two
+        or more spaces to separate columns. Returns a list of dicts with keys:
+        `name`, `size`, `flags`, `date`, `comment`, and `raw`.
+        """
+        import re
+
+        entries = []
+        if not raw_output:
+            return entries
+
+        # Regex helpers
+        date_re = re.compile(r"\d{2}\.\d{2}\.\d{4}(?: \d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?)?")
+        size_re = re.compile(r"^\d[\d,\.]*(?:[KMGT]?i?)?$", re.IGNORECASE)
+        flags_re = re.compile(r"^[\+\-]?[a-zA-Z-]+$")
+
+        for line in raw_output.splitlines():
+            line = line.rstrip()
+            if not line:
+                continue
+            parts = re.split(r"\s{2,}", line)
+            entry = {"raw": line, "name": "", "size": "", "flags": "", "date": "", "comment": ""}
+
+            # Name is usually first token
+            entry["name"] = parts[0]
+
+            # Try to identify other fields from remaining tokens
+            for p in parts[1:]:
+                p = p.strip()
+                if not p:
+                    continue
+                # date detection (most specific)
+                if not entry["date"] and date_re.search(p):
+                    entry["date"] = date_re.search(p).group(0)
+                    continue
+                # flags detection (short ascii sequence)
+                if not entry["flags"] and flags_re.fullmatch(p):
+                    entry["flags"] = p
+                    continue
+                # size detection (numbers, optionally with KiB/MiB suffixes)
+                if not entry["size"] and size_re.fullmatch(p):
+                    entry["size"] = p
+                    continue
+                # otherwise treat as comment (append)
+                if entry["comment"]:
+                    entry["comment"] += " " + p
+                else:
+                    entry["comment"] = p
+
+            entries.append(entry)
+
+        return entries
+
     def info(self, image_path: str):
         return self._run(image_path, ["info"], capture=True)
 
