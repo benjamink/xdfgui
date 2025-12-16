@@ -35,9 +35,9 @@ jobs:
         id: version
         run: |
           curr=$(python - <<'PY'
-  import tomllib, pathlib
-  data = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
-  print(data['project']['version'])
+import tomllib, pathlib
+data = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
+print(data['project']['version'])
 PY
           )
           IFS='.' read -r major minor patch <<< "$curr"
