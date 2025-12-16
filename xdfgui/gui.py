@@ -239,15 +239,16 @@ class App:
         if not self.image_path:
             messagebox.showwarning("No image", "Open or create an image first")
             return
-        src = filedialog.askopenfilename(title="Select host file to write into image")
-        if src:
-            ami = simpledialog.askstring("Target path", "Target Amiga path (e.g. c/myfile):", initialvalue="")
-
-            def work():
-                self.xd.write(self.image_path, src, ami if ami else None)
-                self.refresh()
-
-            self.run_task(work)
+        src_files = filedialog.askopenfilenames(title="Select host files to write into image")
+        if src_files:
+            for src in src_files:
+                default_name = Path(src).name
+                ami = simpledialog.askstring("Target path", f"Target Amiga path for '{Path(src).name}' (e.g. c/myfile):", initialvalue=default_name)
+                if ami:
+                    def work(image_path=self.image_path, src_file=src, ami_path=ami):
+                        self.xd.write(image_path, src_file, ami_path)
+                    self.run_task(work)
+            self.refresh()
 
     def extract_file(self):
         if not self.image_path:
@@ -287,7 +288,7 @@ class App:
         src = simpledialog.askstring("Source path", "Existing Amiga path (e.g. c/oldfile):")
         if not src:
             return
-        dst = simpledialog.askstring("Destination path", "New Amiga path (e.g. c/newfile):")
+        dst = simpledialog.askstring("Destination path", "New Amiga path (e.g. c/newfile):", initialvalue=src)
         if not dst:
             return
 
