@@ -119,6 +119,46 @@ open dist/xdfgui.app
 
 Or drag `xdfgui.app` to your Applications folder.
 
+Docker Usage
+------------
+
+The application is available as a Docker image at `ghcr.io/benjamink/xdfgui`.
+
+For X11 forwarding on macOS (requires XQuartz):
+
+```bash
+# Install XQuartz if you haven't already:
+# brew install xquartz
+
+# Start XQuartz and enable network connections:
+# Open XQuartz > Preferences > Security > "Allow connections from network clients"
+
+# Run with X forwarding:
+docker run --rm \
+  -e DISPLAY=host.docker.internal:0 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  ghcr.io/benjamink/xdfgui:latest
+```
+
+For Linux with X11:
+
+```bash
+docker run --rm \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  ghcr.io/benjamink/xdfgui:latest
+```
+
+To work with ADF files in the container, mount a volume:
+
+```bash
+docker run --rm \
+  -e DISPLAY=host.docker.internal:0 \
+  -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
+  -v ~/adf-files:/adf-files \
+  ghcr.io/benjamink/xdfgui:latest
+```
+
 Troubleshooting
 ---------------
 
@@ -129,6 +169,8 @@ uv add amitools lhafile
 ```
 
 - If UI actions hang, ensure the virtual environment's Python is used and `xdftool` is available; the GUI runs long operations in background threads and shows a progress indicator.
+
+- **Docker display issues**: Xvfb (virtual framebuffer) won't display anything visible. Use X11 forwarding with XQuartz (macOS) or native X11 (Linux) for the GUI to appear.
 
 Notes
 -----

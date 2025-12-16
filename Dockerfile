@@ -8,12 +8,12 @@ ENV DEBIAN_FRONTEND=noninteractive \
     UV_PROJECT_ENV=.venv \
     UV_LINK_MODE=copy
 
-# OS packages for Tk and X11 forwarding/Xvfb
+# OS packages for Tk and X11 forwarding
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl \
     tk tcl \
     libx11-6 libxext6 libxrender1 libxtst6 libxft2 libxss1 \
-    xauth xvfb \
+    xauth \
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv
