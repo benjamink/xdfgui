@@ -159,7 +159,10 @@ class App:
         if p:
             def work():
                 self.xd.create(p)
-                self.set_status(f"Created: {p}")
+                self.set_status(f"Created and formatting: {p}")
+                # Automatically format with default volume name
+                self.xd.format(p, "NewDisk")
+                self.set_status(f"Created and formatted: {p}")
 
             self.run_task(work)
 
