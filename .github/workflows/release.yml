@@ -23,54 +23,37 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
 
       - name: Compute next patch version
         id: version
         run: |
-          new_version=$(python - <<'PY'
-import tomllib, pathlib, sys
-path = pathlib.Path("pyproject.toml")
-data = tomllib.loads(path.read_text())
-v = data["project"]["version"]
-parts = v.split(".")
-if len(parts) != 3 or not all(p.isdigit() for p in parts):
-    print("Invalid semantic version in pyproject.toml", file=sys.stderr)
-    sys.exit(1)
-parts[-1] = str(int(parts[-1]) + 1)
-print(".".join(parts))
+          curr=$(python - <<'PY'
+import tomllib, pathlib
+data = tomllib.loads(pathlib.Path('pyproject.toml').read_text())
+print(data['project']['version'])
 PY
           )
-          echo "version=${new_version}" >> "$GITHUB_OUTPUT"
-
-      - name: Fail if tag already exists
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = process.env.VERSION;
-            const tag = `v${version}`;
-            try {
-              await github.rest.git.getRef({ owner: context.repo.owner, repo: context.repo.repo, ref: `tags/${tag}` });
-              core.setFailed(`Tag ${tag} already exists`);
-            } catch (error) {
-              if (error.status !== 404) throw error;
-            }
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+          IFS='.' read -r major minor patch <<< "$curr"
+          patch=$((patch+1))
+          new_version="$major.$minor.$patch"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$new_version" >> "$GITHUB_OUTPUT"
 
       - name: Create tag
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const version = process.env.VERSION;
-            const tag = `v${version}`;
-            await github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: `refs/tags/${tag}`,
-              sha: context.sha,
-            });
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git tag "$TAG"
+          git push origin "$TAG"
         env:
-          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -88,14 +71,14 @@ PY
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
