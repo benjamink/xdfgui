@@ -120,6 +120,11 @@ class App:
             if not self.image_path:
                 return
             code, out, err = self.xd.list(self.image_path)
+            if code != 0:
+                error_msg = err.strip() or out.strip()
+                self.set_status(f"Error listing image: {error_msg}")
+                self.tree.insert("", tk.END, values=(f"Error: {error_msg}", "", "", "", ""))
+                return
             if out:
                 entries = self.xd.parse_list_output(out)
                 for ent in entries:
