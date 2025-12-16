@@ -28,6 +28,8 @@ bash install_launcher.sh
 
 Then open xdfgui from Spotlight (Cmd+Space, type "xdfgui") or find it in ~/Applications/xdfgui.app
 
+![xdfgui Screenshot](docs/screenshot.png)
+
 What this does
 --------------
 
