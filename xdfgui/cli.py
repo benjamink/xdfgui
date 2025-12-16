@@ -15,8 +15,11 @@ def main():
     root = Tk()
     root.title('xdfgui')
     
+    # Bring window to front on macOS
     if sys.platform == 'darwin':
         root.createcommand('::tk::mac::ShowPreferences', lambda: None)
+        root.lift()
+        root.focus_force()
     
     app = App(root)
     root.mainloop()
